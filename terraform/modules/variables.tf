@@ -1,43 +1,24 @@
 variable "aws_region" {
-  description = "Región donde se desplegará la infraestructura"
-  default     = "us-east-1"
+  default = "us-east-1"
 }
 
-variable "vpc_id" {
-  description = "ID de la VPC donde se ejecutará el ECS"
-  type        = string
+variable "ecr_image_url" {
+  description = "URL de la imagen en Amazon ECR"
 }
 
 variable "subnet_ids" {
-  description = "Lista de subnets para los servicios de ECS"
+  description = "Lista de subnets en la VPC"
   type        = list(string)
 }
 
 variable "security_group_id" {
-  description = "ID del security group para la instancia ECS"
-  type        = string
+  description = "ID del Security Group para ECS"
 }
 
-variable "ecs_cluster_name" {
-  description = "Nombre del clúster ECS"
-  default     = "my-ecs-cluster"
+variable "vpc_id" {
+  description = "ID de la VPC"
 }
 
-variable "container_port" {
-  description = "Puerto expuesto por el contenedor"
-  default     = 8080
-}
-
-variable "desired_task_count" {
-  description = "Número deseado de tareas (tasks) para el servicio ECS"
-  default     = 2
-}
-
-variable "tags" {
-  description = "Etiquetas estándar para los recursos"
-  type        = map(string)
-  default     = {
-    Environment = "Production"
-    Project     = "MyProject"
-  }
+variable "ec2_key_name" {
+  description = "Nombre de la clave SSH para acceder a las instancias EC2"
 }
