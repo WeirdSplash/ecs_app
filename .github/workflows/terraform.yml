@@ -5,7 +5,7 @@ on:
     paths:
       - 'terraform/**'
     branches:
-      - main
+      - test1
 
 jobs:
   terraform:
