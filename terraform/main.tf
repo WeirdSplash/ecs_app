@@ -2,7 +2,7 @@ provider "aws" {
   region = var.aws_region
 }
 
-# 1️⃣ Crear el Cluster ECS
+# Crear el Cluster ECS
 resource "aws_ecs_cluster" "app_cluster" {
   name = "my-ecs-cluster"
 
@@ -14,7 +14,7 @@ resource "aws_ecs_cluster" "app_cluster" {
   }
 }
 
-# 2️⃣ Configurar la plantilla de lanzamiento para EC2
+# Configurar la plantilla de lanzamiento para EC2
 resource "aws_launch_template" "ecs_launch_template" {
   name_prefix   = "ecs-template-"
   image_id      = "ami-0c55b159cbfafe1f0" # AMI de Amazon Linux 2 con soporte para ECS
@@ -29,7 +29,7 @@ EOF
   )
 }
 
-# 3️⃣ Grupo de Auto Scaling para EC2
+# Grupo de Auto Scaling para EC2
 resource "aws_autoscaling_group" "ecs_asg" {
   vpc_zone_identifier = var.subnet_ids
   desired_capacity    = 2
@@ -42,7 +42,7 @@ resource "aws_autoscaling_group" "ecs_asg" {
   }
 }
 
-# 4️⃣ Capacity Provider para ECS con EC2
+# Capacity Provider para ECS con EC2
 resource "aws_ecs_capacity_provider" "ecs_capacity_provider" {
   name = "EC2CapacityProvider"
 
@@ -53,7 +53,7 @@ resource "aws_ecs_capacity_provider" "ecs_capacity_provider" {
   }
 }
 
-# 5️⃣ Definir la Task Definition
+# Definir la Task Definition
 resource "aws_ecs_task_definition" "app_task" {
   family                   = "app-task"
   network_mode             = "bridge"
@@ -76,7 +76,7 @@ resource "aws_ecs_task_definition" "app_task" {
   }])
 }
 
-# 6️⃣ Crear el servicio ECS en EC2
+# Crear el servicio ECS en EC2
 resource "aws_ecs_service" "app_service" {
   name            = "app-service"
   cluster         = aws_ecs_cluster.app_cluster.id
@@ -95,7 +95,7 @@ resource "aws_ecs_service" "app_service" {
   }
 }
 
-# 7️⃣ Load Balancer para ECS en EC2
+# Load Balancer para ECS en EC2
 resource "aws_lb" "app_lb" {
   name               = "app-lb"
   internal           = false
@@ -104,7 +104,7 @@ resource "aws_lb" "app_lb" {
   enable_deletion_protection = false
 }
 
-# 8️⃣ Target Group para la app
+# Target Group para la app
 resource "aws_lb_target_group" "app_tg" {
   name     = "app-tg"
   port     = 8080
@@ -113,7 +113,7 @@ resource "aws_lb_target_group" "app_tg" {
   target_type = "instance"
 }
 
-# 9️⃣ Listener del Load Balancer
+# Listener del Load Balancer
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.app_lb.arn
   port              = 80
@@ -124,3 +124,13 @@ resource "aws_lb_listener" "http" {
     target_group_arn = aws_lb_target_group.app_tg.arn
   }
 }
+# Tabla DynamoDB
+resource "aws_dynamodb_table" "terraform_lock" {
+  name           = "terraform-lock"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
