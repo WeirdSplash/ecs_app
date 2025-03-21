@@ -33,11 +33,9 @@ jobs:
       
       - name: Capture and Clean Terraform Outputs
         run: |
-          # Capturamos los valores y limpiamos caracteres no deseados
           ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r')
           ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r')
 
-          # Verificamos que las variables no estén vacías
           if [[ -z "$ECS_CLUSTER_NAME" ]]; then
             echo "Error: ECS_CLUSTER_NAME está vacío" >&2
             exit 1
@@ -48,17 +46,15 @@ jobs:
             exit 1
           fi
 
-          # Exportamos al entorno
           echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
           echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
 
-          # Debug
           echo "ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
           echo "ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
         working-directory: terraform
 
   build-and-deploy:
-    needs: terraform  # Depende del job terraform
+    needs: terraform
     runs-on: ubuntu-latest
 
     steps:
@@ -74,7 +70,7 @@ jobs:
 
       - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
 
       - name: Build and Push Docker Image
         run: |
