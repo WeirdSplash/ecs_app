@@ -33,15 +33,17 @@ jobs:
 
       - name: Export Terraform Outputs
         run: |
-          RAW_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>&1 || echo "")
-          ECS_CLUSTER_NAME=$(echo "$RAW_CLUSTER_NAME" | grep -v "::" || echo "")
+          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name || echo "")
           echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
-      
-          RAW_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>&1 || echo "")
-          ECS_SERVICE_NAME=$(echo "$RAW_SERVICE_NAME" | grep -v "::" || echo "")
+          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name || echo "")
           echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
         working-directory: terraform
-        
+      
+      - name: Debug ECS Variables
+        run: |
+          echo "ECS_CLUSTER_NAME: $ECS_CLUSTER_NAME"
+          echo "ECS_SERVICE_NAME: $ECS_SERVICE_NAME"
+
       - name: Debug Raw Terraform Outputs
         run: |
           echo "RAW_CLUSTER_NAME:"
@@ -49,7 +51,7 @@ jobs:
           echo "RAW_SERVICE_NAME:"
           terraform output -raw ecs_service_name || echo "No output found"
         working-directory: terraform
-            
+        
   build-and-deploy:
     needs: terraform  # Espera a que termine terraform antes de ejecutar deploy
     runs-on: ubuntu-latest
