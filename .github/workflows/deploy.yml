@@ -31,53 +31,39 @@ jobs:
         run: terraform apply -auto-approve -var="ecr_image_url=${{ secrets.ECR_REPOSITORY }}"
         working-directory: terraform
       
-      - name: Export and Clean Terraform Outputs
+      - name: Capture and Clean Terraform Outputs
         run: |
-          # Capturamos y limpiamos las salidas
-          RAW_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null || echo "")
-          ECS_CLUSTER_NAME=$(echo "$RAW_CLUSTER_NAME" | tr -d '\n' | tr -d '\r' | sed -e 's/::.*//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-      
-          RAW_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null || echo "")
-          ECS_SERVICE_NAME=$(echo "$RAW_SERVICE_NAME" | tr -d '\n' | tr -d '\r' | sed -e 's/::.*//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-      
-          # Verificamos si las variables están vacías
+          # Capturamos los valores y limpiamos caracteres no deseados
+          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r')
+          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r')
+
+          # Verificamos que las variables no estén vacías
           if [[ -z "$ECS_CLUSTER_NAME" ]]; then
             echo "Error: ECS_CLUSTER_NAME está vacío" >&2
             exit 1
           fi
-      
+
           if [[ -z "$ECS_SERVICE_NAME" ]]; then
             echo "Error: ECS_SERVICE_NAME está vacío" >&2
             exit 1
           fi
-      
-          # Escribimos en un archivo temporal
-          echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" > .env
-          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> .env
-      
-          # Exportamos desde el archivo limpio
-          cat .env >> $GITHUB_ENV
-      
-          # Depuración: Imprime los valores
-          echo "Cleaned ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
-          echo "Cleaned ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
+
+          # Exportamos al entorno
+          echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
+          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
+
+          # Debug
+          echo "ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+          echo "ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
         working-directory: terraform
 
-      - name: Print Environment Variables
-        run: |
-          echo "ECS_CLUSTER_NAME: ${{ env.ECS_CLUSTER_NAME }}"
-          echo "ECS_SERVICE_NAME: ${{ env.ECS_SERVICE_NAME }}"
-
   build-and-deploy:
-    needs: terraform  # Espera a que termine terraform antes de ejecutar deploy
+    needs: terraform  # Depende del job terraform
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-      
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v2
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -85,84 +71,11 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-          
-      - name: Initialize Terraform
-        run: terraform init
-        working-directory: terraform
 
-      # Verificar el estado de Terraform antes de capturar valores
-      - name: Debug Terraform Outputs
-        run: |
-            terraform state list
-            terraform output
-        working-directory: terraform
-
-      - name: Capture Terraform Outputs
-        run: |
-            ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)
-            ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name)
-      
-            echo "ECS_CLUSTER_NAME='$ECS_CLUSTER_NAME'"
-            echo "ECS_SERVICE_NAME='$ECS_SERVICE_NAME'"
-      
-            if [[ -z "$ECS_CLUSTER_NAME" ]]; then
-              echo "Error: ecs_cluster_name está vacío" >&2
-              exit 1
-            fi
-      
-            if [[ -z "$ECS_SERVICE_NAME" ]]; then
-              echo "Error: ecs_service_name está vacío" >&2
-              exit 1
-            fi
-      
-            echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
-            echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
-        
-        shell: bash
-        working-directory: terraform
-      
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
-      - name: Export and Clean Terraform Outputs
-        run: |
-          # Capturar valores desde Terraform
-          RAW_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r')
-          RAW_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r')
-
-          # Verificar si los valores están vacíos
-          if [[ -z "$RAW_CLUSTER_NAME" ]]; then
-            echo "Error: ecs_cluster_name está vacío" >&2
-            exit 1
-          fi
-
-          if [[ -z "$RAW_SERVICE_NAME" ]]; then
-            echo "Error: ecs_service_name está vacío" >&2
-            exit 1
-          fi
-
-          # Exportar valores al entorno de GitHub Actions
-          echo "ECS_CLUSTER_NAME=$RAW_CLUSTER_NAME" >> $GITHUB_ENV
-          echo "ECS_SERVICE_NAME=$RAW_SERVICE_NAME" >> $GITHUB_ENV
-
-          # Debug
-          echo "ECS_CLUSTER_NAME exportado: '$RAW_CLUSTER_NAME'"
-          echo "ECS_SERVICE_NAME exportado: '$RAW_SERVICE_NAME'"
-        working-directory: terraform
-      
-      - name: Debug Terraform Outputs
-        run: |
-          echo "Raw ECS_CLUSTER_NAME:"
-          terraform output ecs_cluster_name
-          echo "Raw ECS_SERVICE_NAME:"
-          terraform output ecs_service_name
-          echo "Raw with -raw flag:"
-          terraform output -raw ecs_cluster_name || echo "Error capturando ecs_cluster_name"
-          terraform output -raw ecs_service_name || echo "Error capturando ecs_service_name"
-        working-directory: terraform
-        shell: bash
-      
       - name: Build and Push Docker Image
         run: |
           docker build -t myapp:latest .
@@ -176,16 +89,15 @@ jobs:
 
       - name: Update ECS Service
         run: |
-            echo "Actualizando ECS service..."
-            echo "Cluster Name: '$ECS_CLUSTER_NAME'"
-            echo "Service Name: '$ECS_SERVICE_NAME'"
+          if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
+            echo "Error: ECS_CLUSTER_NAME o ECS_SERVICE_NAME está vacío." >&2
+            exit 1
+          fi
+
+          echo "Actualizando ECS service..."
+          echo "Cluster Name: '$ECS_CLUSTER_NAME'"
+          echo "Service Name: '$ECS_SERVICE_NAME'"
+
+          aws ecs update-service --cluster "$ECS_CLUSTER_NAME" --service "$ECS_SERVICE_NAME" --force-new-deployment
         
-            if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
-                echo "Error: Las variables ECS_CLUSTER_NAME o ECS_SERVICE_NAME están vacías." >&2
-                exit 1
-            fi
-        
-              aws ecs update-service --cluster "$ECS_CLUSTER_NAME" --service "$ECS_SERVICE_NAME" --force-new-deployment
-          
         shell: bash
-        
