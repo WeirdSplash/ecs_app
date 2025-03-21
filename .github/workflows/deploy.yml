@@ -99,13 +99,11 @@ jobs:
 
       - name: Capture Terraform Outputs
         run: |
-            echo "Obteniendo nombres de ECS Cluster y Service..."
+            eval "$(terraform output -raw ecs_cluster_name | awk '{print "ECS_CLUSTER_NAME="$0}')"
+            eval "$(terraform output -raw ecs_service_name | awk '{print "ECS_SERVICE_NAME="$0}')"
       
-            ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '[:space:]')
-            ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '[:space:]')
-      
-            echo "ECS_CLUSTER_NAME obtenido: '$ECS_CLUSTER_NAME'"
-            echo "ECS_SERVICE_NAME obtenido: '$ECS_SERVICE_NAME'"
+            echo "ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+            echo "ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
       
             if [[ -z "$ECS_CLUSTER_NAME" ]]; then
               echo "Error: ecs_cluster_name está vacío" >&2
@@ -119,7 +117,7 @@ jobs:
       
             echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
             echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
-
+      
         shell: bash
         working-directory: terraform
         
