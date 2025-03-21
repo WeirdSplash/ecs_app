@@ -33,8 +33,10 @@ jobs:
 
       - name: Export Terraform Outputs
         run: |
-          echo "ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null || echo '')" >> $GITHUB_ENV
-          echo "ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null || echo '')" >> $GITHUB_ENV
+          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name || echo "")
+          echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
+          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name || echo "")
+          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
         working-directory: terraform
 
   build-and-deploy:
