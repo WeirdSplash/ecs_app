@@ -152,7 +152,19 @@ jobs:
           echo "ECS_CLUSTER_NAME exportado: '$RAW_CLUSTER_NAME'"
           echo "ECS_SERVICE_NAME exportado: '$RAW_SERVICE_NAME'"
         working-directory: terraform
-
+      
+      - name: Debug Terraform Outputs
+        run: |
+          echo "Raw ECS_CLUSTER_NAME:"
+          terraform output ecs_cluster_name
+          echo "Raw ECS_SERVICE_NAME:"
+          terraform output ecs_service_name
+          echo "Raw with -raw flag:"
+          terraform output -raw ecs_cluster_name || echo "Error capturando ecs_cluster_name"
+          terraform output -raw ecs_service_name || echo "Error capturando ecs_service_name"
+        working-directory: terraform
+        shell: bash
+      
       - name: Build and Push Docker Image
         run: |
           docker build -t myapp:latest .
@@ -166,10 +178,16 @@ jobs:
 
       - name: Update ECS Service
         run: |
-              echo "Actualizando ECS service..."
-              echo "Cluster Name: '$ECS_CLUSTER_NAME'"
-              echo "Service Name: '$ECS_SERVICE_NAME'"
+            echo "Actualizando ECS service..."
+            echo "Cluster Name: '$ECS_CLUSTER_NAME'"
+            echo "Service Name: '$ECS_SERVICE_NAME'"
+        
+            if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
+                echo "Error: Las variables ECS_CLUSTER_NAME o ECS_SERVICE_NAME están vacías." >&2
+                exit 1
+            fi
         
               aws ecs update-service --cluster "$ECS_CLUSTER_NAME" --service "$ECS_SERVICE_NAME" --force-new-deployment
-        
+          
         shell: bash
+        
