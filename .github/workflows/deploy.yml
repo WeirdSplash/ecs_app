@@ -85,8 +85,12 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      # Debug: Verificar el estado de Terraform antes de capturar valores
-      
+          
+      - name: Initialize Terraform
+        run: terraform init
+        working-directory: terraform
+
+      # Verificar el estado de Terraform antes de capturar valores
       - name: Debug Terraform Outputs
         run: |
             terraform state list
