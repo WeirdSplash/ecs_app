@@ -103,6 +103,9 @@ jobs:
             ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name | tr -d '\n' | tr -d '\r')
             ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name | tr -d '\n' | tr -d '\r')
 
+            echo "ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+            echo "ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
+
             if [[ -z "$ECS_CLUSTER_NAME" ]]; then
               echo "Error: ecs_cluster_name está vacío" >&2
               exit 1
@@ -115,9 +118,7 @@ jobs:
 
             echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
             echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
-        
-            echo "ECS_CLUSTER_NAME exportado: '$ECS_CLUSTER_NAME'"
-            echo "ECS_SERVICE_NAME exportado: '$ECS_SERVICE_NAME'"
+            
         shell: bash
         working-directory: terraform
         
