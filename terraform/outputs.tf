@@ -41,3 +41,8 @@ output "ec2_key_name" {
 output "ecr_image_url" {
   value = aws_ecr_repository.app_repo.repository_url
 }
+output "private_key_pem" {
+  description = "Clave privada para el acceso SSH"
+  value       = tls_private_key.ecs_key.private_key_pem
+  sensitive   = true
+}

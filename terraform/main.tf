@@ -177,3 +177,15 @@ resource "aws_route_table_association" "subnet_2_assoc" {
   subnet_id      = aws_subnet.public_2.id
   route_table_id = aws_route_table.public_rt.id
 }
+
+# Generar la clave privada y pública
+resource "tls_private_key" "ecs_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+# Registrar la clave pública en AWS como Key Pair
+resource "aws_key_pair" "ecs_key" {
+  key_name   = "ecs-key"
+  public_key = tls_private_key.ecs_key.public_key_openssh
+}
