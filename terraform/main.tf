@@ -134,11 +134,6 @@ resource "aws_ecs_service" "app_service" {
   }
 }
 
-resource "aws_key_pair" "ecs_key" {
-  key_name   = "ecs-key"
-  public_key = "your-public-key-here"
-}
-
 resource "aws_ecr_repository" "app_repo" {
   name = "app-repo"
 }
