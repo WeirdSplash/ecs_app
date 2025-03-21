@@ -142,3 +142,38 @@ resource "aws_key_pair" "ecs_key" {
 resource "aws_ecr_repository" "app_repo" {
   name = "app-repo"
 }
+
+# Crear un internet gateway
+resource "aws_internet_gateway" "main_gw" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "main-gateway"
+  }
+}
+# Crear una tabla de rutas pública
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "public-route-table"
+  }
+}
+
+# Asociar la ruta al Internet Gateway
+resource "aws_route" "internet_access" {
+  route_table_id         = aws_route_table.public_rt.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.main_gw.id
+}
+
+# Asociar la tabla de rutas pública con las subnets
+resource "aws_route_table_association" "subnet_1_assoc" {
+  subnet_id      = aws_subnet.public_1.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+resource "aws_route_table_association" "subnet_2_assoc" {
+  subnet_id      = aws_subnet.public_2.id
+  route_table_id = aws_route_table.public_rt.id
+}
