@@ -29,8 +29,12 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-          echo "ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_ENV
-          echo "ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name)" >> $GITHUB_ENV
+        working-directory: terraform
+
+      - name: Export Terraform Outputs
+        run: |
+          echo "ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null || echo '')" >> $GITHUB_ENV
+          echo "ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null || echo '')" >> $GITHUB_ENV
         working-directory: terraform
 
   build-and-deploy:
