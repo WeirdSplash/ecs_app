@@ -93,6 +93,22 @@ jobs:
           docker tag myapp:latest ${{ secrets.ECR_REPOSITORY }}:latest
           docker push ${{ secrets.ECR_REPOSITORY }}:latest
 
+      - name: Debug ECS Variables Before Update
+        run: |
+            echo "ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+            echo "ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
+        env:
+            ECS_CLUSTER_NAME: ${{ env.ECS_CLUSTER_NAME }}
+            ECS_SERVICE_NAME: ${{ env.ECS_SERVICE_NAME }}
+
       - name: Update ECS Service
         run: |
-          aws ecs update-service --cluster $ECS_CLUSTER_NAME --service $ECS_SERVICE_NAME --force-new-deployment
+            if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
+              echo "Error: Variables ECS_CLUSTER_NAME o ECS_SERVICE_NAME están vacías" >&2
+              exit 1
+            fi
+            
+            aws ecs update-service --cluster "$ECS_CLUSTER_NAME" --service "$ECS_SERVICE_NAME" --force-new-deployment
+        env:
+            ECS_CLUSTER_NAME: ${{ env.ECS_CLUSTER_NAME }}
+            ECS_SERVICE_NAME: ${{ env.ECS_SERVICE_NAME }}
