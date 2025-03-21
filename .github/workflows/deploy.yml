@@ -100,13 +100,14 @@ jobs:
       # Capturar valores desde Terraform
       - name: Capture Terraform Outputs
         run: |
-            export ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name | tr -d '\n' | tr -d '\r')
-            export ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name | tr -d '\n' | tr -d '\r')
+            ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name | tr -d '\n' | tr -d '\r')
+            ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name | tr -d '\n' | tr -d '\r')
 
             if [[ -z "$ECS_CLUSTER_NAME" ]]; then
               echo "Error: ecs_cluster_name está vacío" >&2
               exit 1
             fi
+
             if [[ -z "$ECS_SERVICE_NAME" ]]; then
               echo "Error: ecs_service_name está vacío" >&2
               exit 1
@@ -114,12 +115,12 @@ jobs:
 
             echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
             echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
-
-            echo "ECS_CLUSTER_NAME exportado: '$RAW_CLUSTER_NAME'"
-            echo "ECS_SERVICE_NAME exportado: '$RAW_SERVICE_NAME'"
+        
+            echo "ECS_CLUSTER_NAME exportado: '$ECS_CLUSTER_NAME'"
+            echo "ECS_SERVICE_NAME exportado: '$ECS_SERVICE_NAME'"
+        shell: bash
         working-directory: terraform
-        shell: /usr/bin/bash -e {0}
-
+        
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
