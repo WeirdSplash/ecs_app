@@ -2,15 +2,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-variable "aws_region" {
-  default = "us-east-1"
-}
-
-variable "ecr_image_url" {
-  description = "URL de la imagen en ECR"
-  type        = string
-}
-
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 
