@@ -6,9 +6,12 @@ on:
       - test1
 
 jobs:
-  terraform:
+  deploy:
     runs-on: ubuntu-latest
-
+    outputs:
+      ecs_cluster_name: ${{ steps.export-vars.outputs.ecs_cluster_name }}
+      ecs_service_name: ${{ steps.export-vars.outputs.ecs_service_name }}
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -31,46 +34,27 @@ jobs:
         run: terraform apply -auto-approve -var="ecr_image_url=${{ secrets.ECR_REPOSITORY }}"
         working-directory: terraform
       
-      - name: Capture and Clean Terraform Outputs
+      - name: Capture and Export Terraform Outputs
+        id: export-vars
         run: |
           ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r')
           ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r')
 
-          if [[ -z "$ECS_CLUSTER_NAME" ]]; then
-            echo "Error: ECS_CLUSTER_NAME está vacío" >&2
+          if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
+            echo "Error: Alguna variable está vacía." >&2
             exit 1
           fi
 
-          if [[ -z "$ECS_SERVICE_NAME" ]]; then
-            echo "Error: ECS_SERVICE_NAME está vacío" >&2
-            exit 1
-          fi
+          echo "ecs_cluster_name=$ECS_CLUSTER_NAME" >> $GITHUB_OUTPUT
+          echo "ecs_service_name=$ECS_SERVICE_NAME" >> $GITHUB_OUTPUT
 
-          echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
-          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
-
-          echo "ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
-          echo "ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
+          echo "Debug: ECS_CLUSTER_NAME='$ECS_CLUSTER_NAME'"
+          echo "Debug: ECS_SERVICE_NAME='$ECS_SERVICE_NAME'"
         working-directory: terraform
-
-  build-and-deploy:
-    needs: terraform
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
 
       - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
       - name: Build and Push Docker Image
         run: |
@@ -80,11 +64,14 @@ jobs:
 
       - name: Debug ECS Variables Before Update
         run: |
-          echo "GitHub ENV ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
-          echo "GitHub ENV ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
+          echo "GitHub ENV ECS_CLUSTER_NAME: '${{ steps.export-vars.outputs.ecs_cluster_name }}'"
+          echo "GitHub ENV ECS_SERVICE_NAME: '${{ steps.export-vars.outputs.ecs_service_name }}'"
 
       - name: Update ECS Service
         run: |
+          ECS_CLUSTER_NAME="${{ steps.export-vars.outputs.ecs_cluster_name }}"
+          ECS_SERVICE_NAME="${{ steps.export-vars.outputs.ecs_service_name }}"
+
           if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
             echo "Error: ECS_CLUSTER_NAME o ECS_SERVICE_NAME está vacío." >&2
             exit 1
