@@ -33,19 +33,20 @@ jobs:
 
       - name: Capture and Clean Terraform Outputs
         run: |
-          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r')
-          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r')
+          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r' | xargs)
+          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r' | xargs) 
           
+          # Depuración
+          echo "Depuración - ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+          echo "Depuración - ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
+
           if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
-            echo "Error: ECS_CLUSTER_NAME o ECS_SERVICE_NAME está vacío." >&2
+            echo "Una de las variables esta vacia" >&2
             exit 1
           fi
           
           echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
           echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
-          
-          echo "ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
-          echo "ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
         working-directory: terraform
 
       - name: Login to Amazon ECR
