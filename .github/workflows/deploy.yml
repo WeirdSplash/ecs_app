@@ -34,7 +34,7 @@ jobs:
       - name: Capture and Clean Terraform Outputs
         run: |
           ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | awk 'NR==1')
-          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | awk 'NR==1'qw2TRQYA F
+          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | awk 'NR==1')
 
           # Depuración
           echo "Depuración - ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
