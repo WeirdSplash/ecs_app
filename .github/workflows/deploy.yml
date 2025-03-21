@@ -29,6 +29,8 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+          echo "ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_ENV
+          echo "ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name)" >> $GITHUB_ENV
         working-directory: terraform
 
   build-and-deploy:
@@ -58,4 +60,4 @@ jobs:
 
       - name: Update ECS Service
         run: |
-          aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER_NAME }} --service ${{ secrets.ECS_SERVICE_NAME }} --force-new-deployment
+          aws ecs update-service --cluster $ECS_CLUSTER_NAME --service $ECS_SERVICE_NAME --force-new-deployment
