@@ -41,8 +41,8 @@ jobs:
           ECS_SERVICE_NAME=$(echo "$RAW_SERVICE_NAME" | grep -v "::" || echo "")
           echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
         working-directory: terraform
-              
-        - name: Debug Raw Terraform Outputs
+        
+      - name: Debug Raw Terraform Outputs
         run: |
           echo "RAW_CLUSTER_NAME:"
           terraform output -raw ecs_cluster_name || echo "No output found"
