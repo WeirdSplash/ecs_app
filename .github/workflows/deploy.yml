@@ -31,17 +31,20 @@ jobs:
         run: terraform apply -auto-approve -var="ecr_image_url=${{ secrets.ECR_REPOSITORY }}"
         working-directory: terraform
 
-      - name: Export and Debug Terraform Outputs
+      - name: Export and Clean Terraform Outputs
         run: |
-          RAW_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>&1 || echo "")
-          echo "RAW_CLUSTER_NAME: $RAW_CLUSTER_NAME"
-          ECS_CLUSTER_NAME=$(echo "$RAW_CLUSTER_NAME" | sed -e 's/::.*//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          # Capturamos la salida bruta y eliminamos los metadatos adicionales
+          RAW_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null || echo "")
+          ECS_CLUSTER_NAME=$(echo "$RAW_CLUSTER_NAME" | grep -o '^[^:]*' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
           echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
 
-          RAW_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>&1 || echo "")
-          echo "RAW_SERVICE_NAME: $RAW_SERVICE_NAME"
-          ECS_SERVICE_NAME=$(echo "$RAW_SERVICE_NAME" | sed -e 's/::.*//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          RAW_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null || echo "")
+          ECS_SERVICE_NAME=$(echo "$RAW_SERVICE_NAME" | grep -o '^[^:]*' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
           echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
+
+          # Depuración: Imprime los valores procesados
+          echo "Cleaned ECS_CLUSTER_NAME: $ECS_CLUSTER_NAME"
+          echo "Cleaned ECS_SERVICE_NAME: $ECS_SERVICE_NAME"
         working-directory: terraform
 
       - name: Print Environment Variables
