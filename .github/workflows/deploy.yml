@@ -30,26 +30,38 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -var="ecr_image_url=${{ secrets.ECR_REPOSITORY }}"
         working-directory: terraform
-
+      
       - name: Export and Clean Terraform Outputs
         run: |
           # Capturamos y limpiamos las salidas
           RAW_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null || echo "")
-          ECS_CLUSTER_NAME=$(echo "$RAW_CLUSTER_NAME" | sed -e 's/::.*//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-          echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
-
+          ECS_CLUSTER_NAME=$(echo "$RAW_CLUSTER_NAME" | tr -d '\n' | tr -d '\r' | sed -e 's/::.*//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+      
           RAW_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null || echo "")
-          ECS_SERVICE_NAME=$(echo "$RAW_SERVICE_NAME" | sed -e 's/::.*//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
-
-          # Depuración: Imprime las variables procesadas
-          echo "Cleaned ECS_CLUSTER_NAME: $ECS_CLUSTER_NAME"
-          echo "Cleaned ECS_SERVICE_NAME: $ECS_SERVICE_NAME"
+          ECS_SERVICE_NAME=$(echo "$RAW_SERVICE_NAME" | tr -d '\n' | tr -d '\r' | sed -e 's/::.*//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+      
+          # Verificamos si las variables están vacías
+          if [[ -z "$ECS_CLUSTER_NAME" ]]; then
+            echo "Error: ECS_CLUSTER_NAME está vacío" >&2
+            exit 1
+          fi
+      
+          if [[ -z "$ECS_SERVICE_NAME" ]]; then
+            echo "Error: ECS_SERVICE_NAME está vacío" >&2
+            exit 1
+          fi
+      
+          # Escribimos en un archivo temporal
+          echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" > .env
+          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> .env
+      
+          # Exportamos desde el archivo limpio
+          cat .env >> $GITHUB_ENV
+      
+          # Depuración: Imprime los valores
+          echo "Cleaned ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+          echo "Cleaned ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
         working-directory: terraform
-
-      - name: Check Environment File
-        run: |
-          ls -la $GITHUB_ENV
 
       - name: Print Environment Variables
         run: |
