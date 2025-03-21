@@ -33,8 +33,8 @@ jobs:
 
       - name: Capture and Clean Terraform Outputs
         run: |
-          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\r' | tr -d '\n')
-          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\r' | tr -d '\n')
+          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | awk 'NR==1')
+          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | awk 'NR==1'qw2TRQYA F
 
           # Depuración
           echo "Depuración - ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
@@ -61,8 +61,8 @@ jobs:
 
       - name: Debug ECS Variables Before Update
         run: |
-          echo "GitHub ENV ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
-          echo "GitHub ENV ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
+          echo "ECS_CLUSTER_NAME limpio: '$ECS_CLUSTER_NAME'"
+          echo "ECS_SERVICE_NAME limpio: '$ECS_SERVICE_NAME'"
 
       - name: Update ECS Service
         run: |
