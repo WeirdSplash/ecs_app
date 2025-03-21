@@ -100,20 +100,20 @@ jobs:
       # Capturar valores desde Terraform
       - name: Capture Terraform Outputs
         run: |
-            RAW_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r')
-            RAW_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r')
+            export ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name | tr -d '\n' | tr -d '\r')
+            export ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name | tr -d '\n' | tr -d '\r')
 
-            if [[ -z "$RAW_CLUSTER_NAME" ]]; then
+            if [[ -z "$ECS_CLUSTER_NAME" ]]; then
               echo "Error: ecs_cluster_name está vacío" >&2
               exit 1
             fi
-            if [[ -z "$RAW_SERVICE_NAME" ]]; then
+            if [[ -z "$ECS_SERVICE_NAME" ]]; then
               echo "Error: ecs_service_name está vacío" >&2
               exit 1
             fi
 
-            echo "ECS_CLUSTER_NAME=$RAW_CLUSTER_NAME" >> $GITHUB_ENV
-            echo "ECS_SERVICE_NAME=$RAW_SERVICE_NAME" >> $GITHUB_ENV
+            echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
+            echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
 
             echo "ECS_CLUSTER_NAME exportado: '$RAW_CLUSTER_NAME'"
             echo "ECS_SERVICE_NAME exportado: '$RAW_SERVICE_NAME'"
