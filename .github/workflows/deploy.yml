@@ -33,8 +33,8 @@ jobs:
 
       - name: Capture and Clean Terraform Outputs
         run: |
-          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name || echo "")
-          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name || echo "")
+          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r')
+          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r')
           
           if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
             echo "Error: ECS_CLUSTER_NAME o ECS_SERVICE_NAME está vacío." >&2
