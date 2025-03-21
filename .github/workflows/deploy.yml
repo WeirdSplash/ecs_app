@@ -8,10 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    outputs:
-      ecs_cluster_name: ${{ steps.export-vars.outputs.ecs_cluster_name }}
-      ecs_service_name: ${{ steps.export-vars.outputs.ecs_service_name }}
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -33,23 +30,22 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -var="ecr_image_url=${{ secrets.ECR_REPOSITORY }}"
         working-directory: terraform
-      
-      - name: Capture and Export Terraform Outputs
-        id: export-vars
-        run: |
-          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r')
-          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r')
 
+      - name: Capture and Clean Terraform Outputs
+        run: |
+          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name || echo "")
+          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name || echo "")
+          
           if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
-            echo "Error: Alguna variable está vacía." >&2
+            echo "Error: ECS_CLUSTER_NAME o ECS_SERVICE_NAME está vacío." >&2
             exit 1
           fi
-
-          echo "ecs_cluster_name=$ECS_CLUSTER_NAME" >> $GITHUB_OUTPUT
-          echo "ecs_service_name=$ECS_SERVICE_NAME" >> $GITHUB_OUTPUT
-
-          echo "Debug: ECS_CLUSTER_NAME='$ECS_CLUSTER_NAME'"
-          echo "Debug: ECS_SERVICE_NAME='$ECS_SERVICE_NAME'"
+          
+          echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
+          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
+          
+          echo "ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+          echo "ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
         working-directory: terraform
 
       - name: Login to Amazon ECR
@@ -64,23 +60,20 @@ jobs:
 
       - name: Debug ECS Variables Before Update
         run: |
-          echo "GitHub ENV ECS_CLUSTER_NAME: '${{ steps.export-vars.outputs.ecs_cluster_name }}'"
-          echo "GitHub ENV ECS_SERVICE_NAME: '${{ steps.export-vars.outputs.ecs_service_name }}'"
+          echo "GitHub ENV ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+          echo "GitHub ENV ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
 
       - name: Update ECS Service
         run: |
-          ECS_CLUSTER_NAME="${{ steps.export-vars.outputs.ecs_cluster_name }}"
-          ECS_SERVICE_NAME="${{ steps.export-vars.outputs.ecs_service_name }}"
-
           if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
             echo "Error: ECS_CLUSTER_NAME o ECS_SERVICE_NAME está vacío." >&2
             exit 1
           fi
-
+          
           echo "Actualizando ECS service..."
           echo "Cluster Name: '$ECS_CLUSTER_NAME'"
           echo "Service Name: '$ECS_SERVICE_NAME'"
-
+          
           aws ecs update-service --cluster "$ECS_CLUSTER_NAME" --service "$ECS_SERVICE_NAME" --force-new-deployment
         
         shell: bash
