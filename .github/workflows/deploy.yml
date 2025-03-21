@@ -97,28 +97,29 @@ jobs:
             terraform output
         working-directory: terraform
 
-      # Capturar valores desde Terraform
       - name: Capture Terraform Outputs
         run: |
-            ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name | tr -d '\n' | tr -d '\r')
-            ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name | tr -d '\n' | tr -d '\r')
-
-            echo "ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
-            echo "ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
-
+            echo "Obteniendo nombres de ECS Cluster y Service..."
+      
+            ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '[:space:]')
+            ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '[:space:]')
+      
+            echo "ECS_CLUSTER_NAME obtenido: '$ECS_CLUSTER_NAME'"
+            echo "ECS_SERVICE_NAME obtenido: '$ECS_SERVICE_NAME'"
+      
             if [[ -z "$ECS_CLUSTER_NAME" ]]; then
               echo "Error: ecs_cluster_name está vacío" >&2
               exit 1
             fi
-
+      
             if [[ -z "$ECS_SERVICE_NAME" ]]; then
               echo "Error: ecs_service_name está vacío" >&2
               exit 1
             fi
-
+      
             echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
             echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
-            
+
         shell: bash
         working-directory: terraform
         
@@ -165,9 +166,10 @@ jobs:
 
       - name: Update ECS Service
         run: |
-          if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
-            echo "Error: Variables ECS_CLUSTER_NAME o ECS_SERVICE_NAME están vacías" >&2
-            exit 1
-          fi
-          
-          aws ecs update-service --cluster "$ECS_CLUSTER_NAME" --service "$ECS_SERVICE_NAME" --force-new-deployment
+              echo "Actualizando ECS service..."
+              echo "Cluster Name: '$ECS_CLUSTER_NAME'"
+              echo "Service Name: '$ECS_SERVICE_NAME'"
+        
+              aws ecs update-service --cluster "$ECS_CLUSTER_NAME" --service "$ECS_SERVICE_NAME" --force-new-deployment
+        
+        shell: bash
