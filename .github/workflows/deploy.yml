@@ -28,7 +28,7 @@ jobs:
         working-directory: terraform
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve -var="ecr_image_url=${{ secrets.ECR_IMAGE_URL }}"
         working-directory: terraform
 
       - name: Export Terraform Outputs
