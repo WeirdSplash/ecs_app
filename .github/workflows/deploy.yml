@@ -82,6 +82,36 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+      # Debug: Verificar el estado de Terraform antes de capturar valores
+      
+      - name: Debug Terraform Outputs
+        run: |
+            terraform state list
+            terraform output
+        working-directory: terraform
+
+      # Capturar valores desde Terraform
+      - name: Capture Terraform Outputs
+        run: |
+            RAW_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r')
+            RAW_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r')
+
+            if [[ -z "$RAW_CLUSTER_NAME" ]]; then
+              echo "Error: ecs_cluster_name está vacío" >&2
+              exit 1
+            fi
+            if [[ -z "$RAW_SERVICE_NAME" ]]; then
+              echo "Error: ecs_service_name está vacío" >&2
+              exit 1
+            fi
+
+            echo "ECS_CLUSTER_NAME=$RAW_CLUSTER_NAME" >> $GITHUB_ENV
+            echo "ECS_SERVICE_NAME=$RAW_SERVICE_NAME" >> $GITHUB_ENV
+
+            echo "ECS_CLUSTER_NAME exportado: '$RAW_CLUSTER_NAME'"
+            echo "ECS_SERVICE_NAME exportado: '$RAW_SERVICE_NAME'"
+        working-directory: terraform
+        shell: /usr/bin/bash -e {0}
 
       - name: Login to Amazon ECR
         run: |
