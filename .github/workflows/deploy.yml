@@ -33,20 +33,30 @@ jobs:
 
       - name: Capture and Clean Terraform Outputs
         run: |
-          ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | awk 'NR==1')
-          ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | awk 'NR==1')
 
-          # Depuración
-          echo "Depuración - ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
-          echo "Depuración - ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
+          ECS_CLUSTER_NAME_RAW=$(terraform output -raw ecs_cluster_name 2>&1)
+          ECS_SERVICE_NAME_RAW=$(terraform output -raw ecs_service_name 2>&1)
 
-          if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
-            echo "Una de las variables esta vacia" >&2
-            exit 1
-          fi
-          
-          echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
-          echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
+          # ECS_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | awk 'NR==1')
+          # ECS_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | awk 'NR==1')
+
+            # Depuración de la salida sin procesar
+            echo "RAW ECS_CLUSTER_NAME: $ECS_CLUSTER_NAME_RAW"
+            echo "RAW ECS_SERVICE_NAME: $ECS_SERVICE_NAME_RAW"
+            #echo "Depuración - ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+            #echo "Depuración - ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
+
+            # Depuración para verificar los valores procesados
+            echo "CLEAN ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+            echo "CLEAN ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
+
+              if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
+                echo "Una de las variables esta vacia" >&2
+              exit 1
+              fi
+            echo "ECS_CLUSTER_NAME=$ECS_CLUSTER_NAME" >> $GITHUB_ENV
+            echo "ECS_SERVICE_NAME=$ECS_SERVICE_NAME" >> $GITHUB_ENV
+        
         working-directory: terraform
 
       - name: Login to Amazon ECR
