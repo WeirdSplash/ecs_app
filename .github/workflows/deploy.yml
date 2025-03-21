@@ -87,6 +87,32 @@ jobs:
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
+      - name: Export and Clean Terraform Outputs
+        run: |
+          # Capturar valores desde Terraform
+          RAW_CLUSTER_NAME=$(terraform output -raw ecs_cluster_name 2>/dev/null | tr -d '\n' | tr -d '\r')
+          RAW_SERVICE_NAME=$(terraform output -raw ecs_service_name 2>/dev/null | tr -d '\n' | tr -d '\r')
+
+          # Verificar si los valores están vacíos
+          if [[ -z "$RAW_CLUSTER_NAME" ]]; then
+            echo "Error: ecs_cluster_name está vacío" >&2
+            exit 1
+          fi
+
+          if [[ -z "$RAW_SERVICE_NAME" ]]; then
+            echo "Error: ecs_service_name está vacío" >&2
+            exit 1
+          fi
+
+          # Exportar valores al entorno de GitHub Actions
+          echo "ECS_CLUSTER_NAME=$RAW_CLUSTER_NAME" >> $GITHUB_ENV
+          echo "ECS_SERVICE_NAME=$RAW_SERVICE_NAME" >> $GITHUB_ENV
+
+          # Debug
+          echo "ECS_CLUSTER_NAME exportado: '$RAW_CLUSTER_NAME'"
+          echo "ECS_SERVICE_NAME exportado: '$RAW_SERVICE_NAME'"
+        working-directory: terraform
+
       - name: Build and Push Docker Image
         run: |
           docker build -t myapp:latest .
@@ -95,20 +121,14 @@ jobs:
 
       - name: Debug ECS Variables Before Update
         run: |
-            echo "ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
-            echo "ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
-        env:
-            ECS_CLUSTER_NAME: ${{ env.ECS_CLUSTER_NAME }}
-            ECS_SERVICE_NAME: ${{ env.ECS_SERVICE_NAME }}
+          echo "GitHub ENV ECS_CLUSTER_NAME: '$ECS_CLUSTER_NAME'"
+          echo "GitHub ENV ECS_SERVICE_NAME: '$ECS_SERVICE_NAME'"
 
       - name: Update ECS Service
         run: |
-            if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
-              echo "Error: Variables ECS_CLUSTER_NAME o ECS_SERVICE_NAME están vacías" >&2
-              exit 1
-            fi
-            
-            aws ecs update-service --cluster "$ECS_CLUSTER_NAME" --service "$ECS_SERVICE_NAME" --force-new-deployment
-        env:
-            ECS_CLUSTER_NAME: ${{ env.ECS_CLUSTER_NAME }}
-            ECS_SERVICE_NAME: ${{ env.ECS_SERVICE_NAME }}
+          if [[ -z "$ECS_CLUSTER_NAME" || -z "$ECS_SERVICE_NAME" ]]; then
+            echo "Error: Variables ECS_CLUSTER_NAME o ECS_SERVICE_NAME están vacías" >&2
+            exit 1
+          fi
+          
+          aws ecs update-service --cluster "$ECS_CLUSTER_NAME" --service "$ECS_SERVICE_NAME" --force-new-deployment
